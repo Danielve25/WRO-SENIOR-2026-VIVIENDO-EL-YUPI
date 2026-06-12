@@ -86,7 +86,7 @@ def giro(speed, target_heading):
         elif error < -180:
             error += 360
 
-        if abs(error) < 0.1:  # Umbral de precisión
+        if abs(error) < 1:  # Umbral de precisión
             break
 
         integral += error
