@@ -9,6 +9,24 @@ hub = PrimeHub()
 diametro = 62.5
 motor_derecho = Motor(Port.A, Direction.COUNTERCLOCKWISE)
 motor_izquierdo = Motor(Port.E, Direction.CLOCKWISE)
+motor_barrera = Motor(Port.F, gears=[12, 36, 28])
+motor_garra = Motor(Port.D, positive_direction=Direction.COUNTERCLOCKWISE)
+
+
+def reset_imu():
+    wait(100)  # Pequeña pausa para asegurar que el IMU esté listo
+    hub.imu.reset_heading(0)
+    wait(100)  # Otra pausa para estabilizar después del reset
+
+
+def reset_todo():
+    motor_garra.run_until_stalled(200, then=Stop.HOLD, duty_limit=30)
+    motor_garra.reset_angle(0)
+    motor_barrera.run_until_stalled(-200, then=Stop.HOLD, duty_limit=30)
+    motor_barrera.reset_angle(0)
+    reset_imu()
+    motor_derecho.reset_angle(0)
+    motor_izquierdo.reset_angle(0)
 
 
 def avance_adelante(speed: int, mm: int, target_heading: int):
