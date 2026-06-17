@@ -1,16 +1,24 @@
-from yupifuncionesbasicas import avance_adelante, giro, avance_reversa, hub, wait
+from yupifuncionesbasicas import (
+    avance_adelante,
+    giro,
+    avance_reversa,
+    hub,
+    wait,
+    motor_derecho,
+    motor_izquierdo,
+    giro_un_motor,
+)
 
 hub.imu.reset_heading(0)
 
 
-avance_adelante(80, 300, 0)
-giro(50, 90)
-avance_adelante(80, 300, 90)
-giro(50, 180)
-avance_adelante(80, 300, 180)
-giro(50, 270)
-avance_adelante(80, 300, 270)
-giro(50, 360)
+giro_un_motor(
+    -50, 180, True, False
+)  # Gira el robot a 180 grados usando solo el motor derecho
+
+
+motor_derecho.brake()
+motor_izquierdo.brake()
 
 print(
     hub.imu.heading()
