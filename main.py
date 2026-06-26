@@ -22,8 +22,7 @@ from yupifuncionesbasicas import (
 reset_all()
 segundo_plano(reset_motores())
 avance_adelante(70, 869, 0)
-giro(50, 90)
-avance_reversa(40, 186, 90)
+
 # escaneo melisimo
 
 motor_derecho.brake()
