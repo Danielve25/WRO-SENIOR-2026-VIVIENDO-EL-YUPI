@@ -4,7 +4,7 @@ from pybricks.parameters import Button, Color, Direction, Port, Side, Stop
 from pybricks.robotics import DriveBase
 from pybricks.tools import wait, StopWatch
 from umath import pi
-from pybricks.tools import multitask, run_task
+from pybricks.tools import multitask, run_task, wait
 
 segundo_plano = run_task
 hub = PrimeHub()
@@ -14,6 +14,7 @@ motor_izquierdo = Motor(Port.E, Direction.CLOCKWISE)
 motor_barrera = Motor(Port.F, gears=[12, 36, 28])
 motor_garra = Motor(Port.D, positive_direction=Direction.COUNTERCLOCKWISE)
 motor_garra.control.stall_tolerances(speed=50, time=200)
+color_sensor = ColorSensor(Port.B)
 
 
 def reset_imu():
@@ -22,7 +23,7 @@ def reset_imu():
     wait(100)  # Otra pausa para estabilizar después del reset
 
 
-def reset_all():
+async def reset_all():
     reset_imu()
     motor_derecho.reset_angle(0)
     motor_izquierdo.reset_angle(0)
@@ -46,6 +47,111 @@ def bajar_garra(fichas_Voladoras: bool = False):
         motor_garra.run_angle(1110, 278)
     else:
         motor_garra.run_angle(600, 270)
+
+
+def seguir_linea_dc(speed: int, target_reflection: int, duration_ms: int):
+    # Valores iniciales para calibrar con .dc()
+    kp = 0.6
+    kd = 4
+    ki = 0.01
+
+    integral = 0
+    last_error = 0
+    cronometro = StopWatch()
+
+    # Encabezado para facilitar la creación de la gráfica
+    print("tiempo_ms, luz_actual, luz_objetivo, error")
+
+    while cronometro.time() < duration_ms:
+        current_reflection = color_sensor.reflection()
+        error = target_reflection - current_reflection
+
+        integral += error
+        derivative = error - last_error
+        correction = (kp * error) + (ki * integral) + (kd * derivative)
+
+        # Calculamos la potencia de cada motor
+        power_izq = speed + correction
+        power_der = speed - correction
+
+        # ¡CRÍTICO PARA .DC()!
+        # Limitamos los valores entre -100 y 100 para evitar errores de saturación
+        power_izq = max(-100, min(100, power_izq))
+        power_der = max(-100, min(100, power_der))
+
+        # Aplicamos el ciclo de trabajo directo
+        motor_izquierdo.dc(power_izq)
+        motor_derecho.dc(power_der)
+
+        # Imprime los datos: Tiempo, luz leída por el sensor, el objetivo y el error
+        print(
+            cronometro.time(),
+            ",",
+            current_reflection,
+            ",",
+            target_reflection,
+            ",",
+            error,
+        )
+
+        wait(10)
+        last_error = error
+
+    # Frenado al final del tramo
+    motor_izquierdo.dc(0)
+    motor_derecho.dc(0)
+
+
+# 2. Definición de la Función PID
+def seguir_linea_dinamico(speed: int, target_reflection: int, duration_ms: int):
+    # Valores base
+    kp_base = 0.4  # Un valor suave para cuando va bien alineado
+    kd = 4
+    ki = 0  # ¡Apagado para alta velocidad!
+
+    # Factor de agresividad (qué tan rápido sube la rampa)
+    rampa_kp = 0.02
+
+    integral = 0
+    last_error = 0
+    cronometro = StopWatch()
+
+    while cronometro.time() < duration_ms:
+        current_reflection = color_sensor.reflection()
+        error = target_reflection - current_reflection
+
+        # --- AQUÍ ESTÁ TU RAMPA DE CORRECCIÓN ---
+        # abs(error) convierte cualquier error (positivo o negativo) en un número positivo.
+        # Si el error es 0, kp_dinamico = 0.4
+        # Si el error es 30 (muy lejos), kp_dinamico = 0.4 + (30 * 0.02) = 1.0
+        kp_dinamico = kp_base + (abs(error) * rampa_kp)
+
+        integral += error
+        derivative = error - last_error
+
+        # Usamos el kp_dinamico en lugar de un kp fijo
+        correction = (kp_dinamico * error) + (ki * integral) + (kd * derivative)
+
+        # Calculamos y limitamos la potencia de cada motor
+        power_izq = max(-100, min(100, speed + correction))
+        power_der = max(-100, min(100, speed - correction))
+
+        motor_izquierdo.dc(power_izq)
+        motor_derecho.dc(power_der)
+
+        wait(10)
+        last_error = error
+
+    motor_izquierdo.dc(0)
+    motor_derecho.dc(0)
+
+
+# 3. Ejemplo de uso en el programa principal
+# El robot seguirá la línea a 200°/s durante 5 segundos (5000 ms)
+
+
+# Aquí puedes añadir más acciones después de seguir la línea
+hub.speaker.beep()
 
 
 def avance_adelante(speed: int, mm: int, target_heading: int):
