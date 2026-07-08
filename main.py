@@ -1,6 +1,3 @@
-from pybricks.parameters import Stop, Port
-from pybricks.pupdevices import Motor
-
 from yupifuncionesbasicas import (
     avance_adelante,
     bajar_barrera,
