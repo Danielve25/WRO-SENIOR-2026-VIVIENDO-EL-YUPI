@@ -1,7 +1,9 @@
-from pybricks.parameters import Stop
+from pybricks.parameters import Stop, Port
+from pybricks.pupdevices import Motor
 
 from yupifuncionesbasicas import (
     avance_adelante,
+    bajar_barrera,
     giro,
     avance_reversa,
     hub,
@@ -9,7 +11,6 @@ from yupifuncionesbasicas import (
     motor_derecho,
     motor_izquierdo,
     giro_un_motor,
-    motor_barrera,
     reset_motores,
     segundo_plano,
     motor_garra,
@@ -18,22 +19,24 @@ from yupifuncionesbasicas import (
     reset_all,
     reset_imu,
     color_sensor,
+    subir_garra,
     seguir_linea_dc,
+    soltar_cubo,
+    subir_barrera,
 )
 
-# while True:
-#    reflection = color_sensor.reflection()
-#    print("Reflexión actual:", reflection)
-#    wait(100)  # Espera 100 ms antes de la siguiente lectura
-
-seguir_linea_dc(speed=40, target_reflection=55, duration_ms=20000)
-
-# Luz blanca para el sensor de color)
 reset_all()
-# segundo_plano(reset_motores())
-# avance_adelante(70, 869, 0)
+segundo_plano(reset_motores())
 
-# escaneo melisimo
+avance_adelante(50, 1000, 0)
+
+# ---------------codigo cubos-----------------
+
+# soltar_cubo()
+# bajar_barrera(180)
+# wait(1000)
+# subir_barrera(180)
+
 
 motor_derecho.brake()
 motor_izquierdo.brake()

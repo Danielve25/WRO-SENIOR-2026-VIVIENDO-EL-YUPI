@@ -8,13 +8,26 @@ from pybricks.tools import multitask, run_task, wait
 
 segundo_plano = run_task
 hub = PrimeHub()
-diametro = 62.5
+diametro = 62
 motor_derecho = Motor(Port.A, Direction.COUNTERCLOCKWISE)
 motor_izquierdo = Motor(Port.E, Direction.CLOCKWISE)
-motor_barrera = Motor(Port.F, gears=[12, 36, 28])
+motor_f = Motor(Port.F)
 motor_garra = Motor(Port.D, positive_direction=Direction.COUNTERCLOCKWISE)
 motor_garra.control.stall_tolerances(speed=50, time=200)
 color_sensor = ColorSensor(Port.B)
+
+
+def soltar_cubo(grados: int = 60):
+    # Relación original: [[20, 12, 36], [12, 20]]
+    # Reducción total = (36 / 20) * (20 / 12) = 3.0
+    # Para que la salida gire -600 grados a velocidad 20, el motor debe girar:
+    grados_motor = -grados * 3  # -1800 grados
+    velocidad_motor = 600  # 60
+
+    motor_f.run_angle(velocidad_motor, grados_motor)
+    wait(500)
+    motor_f.run_angle(velocidad_motor, -grados_motor)
+    motor_f.stop()  # Liberar el motor después de usarlo
 
 
 def reset_imu():
@@ -29,24 +42,44 @@ async def reset_all():
     motor_izquierdo.reset_angle(0)
 
 
+def bajar_barrera(grados: int):
+    # Relación real: 28 / 12 (aprox 2.333)
+    grados_motor = -grados * (28 / 12)
+    velocidad_motor = 600
+
+    # Usamos run_angle para que respete los grados exactos que le pidas
+    hub.speaker.beep()
+    motor_f.run_angle(velocidad_motor, grados_motor)
+    motor_f.stop()
+
+
+def subir_barrera(grados: int):
+    # Relación real: 28 / 12 (aprox 2.333)
+    grados_motor = grados * (28 / 12)
+    velocidad_motor = 600
+
+    # Usamos run_angle para que respete los grados exactos que le pidas
+    hub.speaker.beep()
+    motor_f.run_angle(velocidad_motor, grados_motor)
+    motor_f.stop()
+
+
 async def reset_motores():
-    # El 'await multitask' hace que ambas líneas arranquen simultáneamente
-    # y pausa esta función hasta que ambos motores se hayan trabado.
-    multitask(
+    # Hacemos exactamente lo mismo para la función asíncrona
+
+    await multitask(
         motor_garra.run_until_stalled(200, then=Stop.HOLD, duty_limit=60),
-        motor_barrera.run_until_stalled(-200, then=Stop.HOLD, duty_limit=30),
+        motor_f.run_until_stalled(600, then=Stop.HOLD, duty_limit=40),
     )
+    motor_f.stop()
 
 
 def subir_garra():
     motor_garra.run_until_stalled(-1110, then=Stop.HOLD)
 
 
-def bajar_garra(fichas_Voladoras: bool = False):
-    if fichas_Voladoras:
-        motor_garra.run_angle(1110, 278)
-    else:
-        motor_garra.run_angle(600, 270)
+def bajar_garra():
+    motor_garra.run_angle(600, 270)
 
 
 def seguir_linea_dc(speed: int, target_reflection: int, duration_ms: int):
@@ -151,10 +184,10 @@ def seguir_linea_dinamico(speed: int, target_reflection: int, duration_ms: int):
 
 
 # Aquí puedes añadir más acciones después de seguir la línea
-hub.speaker.beep()
 
 
 def avance_adelante(speed: int, mm: int, target_heading: int):
+
     NewSpeed = abs(speed)
     New_mm = abs(mm)
     kp = 4
@@ -201,6 +234,7 @@ def avance_adelante(speed: int, mm: int, target_heading: int):
 
 def avance_reversa(speed: int, mm: int, target_heading: int):
     # Todo se calcula en valores negativos desde el inicio
+
     NewSpeed = -abs(speed)
 
     New_mm = abs(mm)
@@ -276,6 +310,7 @@ def giro(speed, target_heading):
 
 
 def giro_un_motor(speed: int, target_heading: int, derecha: bool, izquierda: bool):
+
     kp = 4
     kd = 4
     ki = 0.01
