@@ -1,7 +1,6 @@
 from pybricks.hubs import PrimeHub
-from pybricks.pupdevices import Motor, ColorSensor, UltrasonicSensor, ForceSensor
-from pybricks.parameters import Button, Color, Direction, Port, Side, Stop
-from pybricks.robotics import DriveBase
+from pybricks.pupdevices import Motor, ColorSensor
+from pybricks.parameters import Direction, Port, Stop
 from pybricks.tools import wait, StopWatch
 from umath import pi
 from pybricks.tools import multitask, run_task, wait
