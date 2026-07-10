@@ -17,6 +17,55 @@ motor_garra.control.stall_tolerances(speed=50, time=200)
 color_sensor = ColorSensor(Port.B)
 
 
+def golpear_pared(speed: int, duration: any, target_heading: int):
+    mover_segundos(speed, duration, target_heading)
+    reset_imu()  # Resetear el IMU después de golpear la pared
+    hub.speaker.beep()
+
+
+def mover_segundos(speed: int, time: any, target_heading: int):
+    NewSpeed = speed
+    kp = 4
+    kd = 10
+    ki = 0.05
+    motor_derecho.reset_angle(0)
+    motor_izquierdo.reset_angle(0)
+    last_error = 0
+    integral = 0
+
+    # 1. Calcular los grados de motor necesarios
+    # Diámetro de la llanta = 62.5 mm (Asegúrate de que 'pi' y 'diametro' estén definidos)
+    current_time = StopWatch()
+    newTime = time * 1000
+
+    # 2. Ciclo de control
+    while True:
+        # Calcular el progreso actual promedio
+        tiempo = current_time.time()
+
+        # Condición de salida del ciclo
+        if tiempo >= newTime:
+            break
+
+        # --- CONTROL DE GIRO (PID) ---
+        error = target_heading - hub.imu.heading()
+        derivada = error - last_error
+        integral += error
+
+        correction = (kp * error + derivada * kd) + (integral * ki)
+
+        # Aplicar la velocidad constante combinada con la corrección PID
+        motor_izquierdo.dc(NewSpeed - correction)
+        motor_derecho.dc(NewSpeed + correction)
+
+        wait(10)
+        last_error = error
+
+    # Frenar los motores al salir del ciclo
+    motor_izquierdo.stop()
+    motor_derecho.stop()
+
+
 def soltar_cubo(grados: int = 60):
     # Relación original: [[20, 12, 36], [12, 20]]
     # Reducción total = (36 / 20) * (20 / 12) = 3.0
@@ -36,7 +85,7 @@ def reset_imu():
     wait(100)  # Otra pausa para estabilizar después del reset
 
 
-async def reset_all():
+def reset_all():
     reset_imu()
     motor_derecho.reset_angle(0)
     motor_izquierdo.reset_angle(0)
@@ -74,16 +123,24 @@ async def reset_motores():
     motor_f.stop()
 
 
-def subir_garra():
-    motor_garra.run_until_stalled(-1110, then=Stop.HOLD)
+def subir_garra(primeravez: bool = False, agarreMovida: bool = False):
+    if primeravez:
+        motor_garra.run_angle(
+            300, -168
+        )  # Ajusta la velocidad y los grados según sea necesario
+    if agarreMovida:
+        motor_garra.run_angle(300, -35)
+    if not primeravez and not agarreMovida:
+        motor_garra.run_until_stalled(-300, then=Stop.HOLD)
 
 
 def bajar_garra():
-    motor_garra.run_angle(600, 270)
+    motor_garra.run_angle(600, 251)
 
 
-def seguir_linea_dc(speed: int, target_reflection: int, duration_ms: int):
+def seguir_linea_dc(speed: int, target_reflection: int, mm: int):
     # Valores iniciales para calibrar con .dc()
+    New_mm = abs(mm)
     kp = 0.6
     kd = 4
     ki = 0.01
@@ -91,11 +148,19 @@ def seguir_linea_dc(speed: int, target_reflection: int, duration_ms: int):
     integral = 0
     last_error = 0
     cronometro = StopWatch()
+    grados_objetivo = (New_mm * 360) / (pi * diametro)
 
     # Encabezado para facilitar la creación de la gráfica
-    print("tiempo_ms, luz_actual, luz_objetivo, error")
+    # print("tiempo_ms, luz_actual, luz_objetivo, error")
 
-    while cronometro.time() < duration_ms:
+    while True:
+        grados_actuales = (
+            abs(motor_izquierdo.angle()) + abs(motor_derecho.angle())
+        ) / 2
+
+        if grados_actuales >= grados_objetivo:
+            break
+
         current_reflection = color_sensor.reflection()
         error = target_reflection - current_reflection
 
@@ -117,15 +182,15 @@ def seguir_linea_dc(speed: int, target_reflection: int, duration_ms: int):
         motor_derecho.dc(power_der)
 
         # Imprime los datos: Tiempo, luz leída por el sensor, el objetivo y el error
-        print(
-            cronometro.time(),
-            ",",
-            current_reflection,
-            ",",
-            target_reflection,
-            ",",
-            error,
-        )
+        # print(
+        #    cronometro.time(),
+        #    ",",
+        #    current_reflection,
+        #    ",",
+        #    target_reflection,
+        #    ",",
+        #    error,
+        # )
 
         wait(10)
         last_error = error
@@ -277,8 +342,7 @@ def avance_reversa(speed: int, mm: int, target_heading: int):
 def giro(speed, target_heading):
     kp = 4
     kd = 4
-    ki = 0.01
-
+    ki = 0.4
     integral = 0
     last_error = 0
 
@@ -291,7 +355,8 @@ def giro(speed, target_heading):
         elif error < -180:
             error += 360
 
-        if abs(error) < 0.8:  # Umbral de precisión
+        # Si ya está en el ángulo exacto con la precisión deseada, sale de inmediato
+        if abs(error) < 1:
             break
 
         integral += error
@@ -302,8 +367,11 @@ def giro(speed, target_heading):
 
         motor_izquierdo.dc(-correction)
         motor_derecho.dc(correction)
-        wait(10)
+
+        # IMPORTANTE: Se movió la actualización antes del wait para que el cálculo
+        # derivativo funcione correctamente si el robot se pasa de largo
         last_error = error
+        wait(10)
 
     motor_izquierdo.stop()
     motor_derecho.stop()
