@@ -16,6 +16,56 @@ motor_garra.control.stall_tolerances(speed=50, time=200)
 color_sensor = ColorSensor(Port.B)
 
 
+def agarrar_cubo(cubo: int, primeravez: bool = False, ultimo_agarrado: bool = False):
+    avance = 0
+    retroceso = 0
+
+    if cubo == 1:
+        avance = 106
+        retroceso = 0.7
+    elif cubo == 2:
+        avance = 170
+        retroceso = 0.8
+    elif cubo == 3:
+        avance = 265
+        retroceso = 1.3
+    elif cubo == 4:
+        avance = 333
+        retroceso = 1.4
+    elif cubo == 5:
+        avance = 420
+        retroceso = 1.8
+    elif cubo == 6:
+        avance = 476
+        retroceso = 2
+    elif cubo == 7:
+        avance = 575
+        retroceso = 2.5
+    elif cubo == 8:
+        avance = 637
+        retroceso = 2.8
+
+    avance_adelante(60, avance, 0)
+    giro(30, 90)
+    subir_garra()
+    avance_hasta_luz(30, 12, 90)
+    avance_reversa(30, 90, 90)
+    bajar_garra()
+    avance_adelante(30, 70, 90)
+    subir_garra(agarreMovida=True)
+    avance_reversa(30, 35, 90)
+    subir_garra()
+    avance_reversa(30, 30, 90)
+    wait(50)
+    bajar_garra()
+    avance_reversa(30, 20, 90)
+    if ultimo_agarrado:
+        pass
+    else:
+        giro(50, 0)
+        golpear_pared(-60, retroceso, 0)
+
+
 def golpear_pared(speed: int, duration: any, target_heading: int):
     mover_segundos(speed, duration, target_heading)
     reset_imu()  # Resetear el IMU después de golpear la pared
@@ -128,13 +178,13 @@ def subir_garra(primeravez: bool = False, agarreMovida: bool = False):
             300, -168
         )  # Ajusta la velocidad y los grados según sea necesario
     if agarreMovida:
-        motor_garra.run_angle(300, -35)
+        motor_garra.run_angle(300, -35, then=Stop.HOLD)
     if not primeravez and not agarreMovida:
         motor_garra.run_until_stalled(-300, then=Stop.HOLD)
 
 
 def bajar_garra():
-    motor_garra.run_angle(600, 251)
+    motor_garra.run_angle(600, 258)
 
 
 def seguir_linea_dc(speed: int, target_reflection: int, mm: int):
@@ -248,6 +298,48 @@ def seguir_linea_dinamico(speed: int, target_reflection: int, duration_ms: int):
 
 
 # Aquí puedes añadir más acciones después de seguir la línea
+def avance_hasta_luz(speed: int, reflection: int, target_heading: int):
+
+    NewSpeed = abs(speed)
+    kp = 4
+    kd = 10
+    ki = 0.05
+    motor_derecho.reset_angle(0)
+    motor_izquierdo.reset_angle(0)
+    last_error = 0
+    integral = 0
+
+    # 1. Calcular los grados de motor necesarios
+    # Diámetro de la llanta = 62.5 mm (Asegúrate de que 'pi' y 'diametro' estén definidos)
+
+    # 2. Ciclo de control
+    while True:
+        # Calcular el progreso actual promedio
+        grados_actuales = (
+            abs(motor_izquierdo.angle()) + abs(motor_derecho.angle())
+        ) / 2
+
+        # Condición de salida del ciclo
+        if reflection == color_sensor.reflection():
+            break
+
+        # --- CONTROL DE GIRO (PID) ---
+        error = target_heading - hub.imu.heading()
+        derivada = error - last_error
+        integral += error
+
+        correction = (kp * error + derivada * kd) + (integral * ki)
+
+        # Aplicar la velocidad constante combinada con la corrección PID
+        motor_izquierdo.dc(NewSpeed - correction)
+        motor_derecho.dc(NewSpeed + correction)
+
+        wait(10)
+        last_error = error
+
+    # Frenar los motores al salir del ciclo
+    motor_izquierdo.stop()
+    motor_derecho.stop()
 
 
 def avance_adelante(speed: int, mm: int, target_heading: int):
