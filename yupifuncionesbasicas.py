@@ -4,6 +4,7 @@ from pybricks.parameters import Direction, Port, Stop
 from pybricks.tools import wait, StopWatch
 from umath import pi
 from pybricks.tools import multitask, run_task, wait
+from config import texto_json
 
 segundo_plano = run_task
 hub = PrimeHub()
@@ -17,33 +18,9 @@ color_sensor = ColorSensor(Port.B)
 
 
 def agarrar_cubo(cubo: int, primeravez: bool = False, ultimo_agarrado: bool = False):
-    avance = 0
-    retroceso = 0
-
-    if cubo == 1:
-        avance = 106
-        retroceso = 0.7
-    elif cubo == 2:
-        avance = 170
-        retroceso = 0.8
-    elif cubo == 3:
-        avance = 265
-        retroceso = 1.3
-    elif cubo == 4:
-        avance = 333
-        retroceso = 1.4
-    elif cubo == 5:
-        avance = 420
-        retroceso = 1.8
-    elif cubo == 6:
-        avance = 476
-        retroceso = 2
-    elif cubo == 7:
-        avance = 575
-        retroceso = 2.5
-    elif cubo == 8:
-        avance = 637
-        retroceso = 2.8
+    config = texto_json[cubo]
+    avance = config["avance"]
+    retroceso = config["retroceso"]
 
     avance_adelante(60, avance, 0)
     giro(30, 90)
@@ -69,7 +46,6 @@ def agarrar_cubo(cubo: int, primeravez: bool = False, ultimo_agarrado: bool = Fa
 def golpear_pared(speed: int, duration: any, target_heading: int):
     mover_segundos(speed, duration, target_heading)
     reset_imu()  # Resetear el IMU después de golpear la pared
-    hub.speaker.beep()
 
 
 def mover_segundos(speed: int, time: any, target_heading: int):
@@ -143,10 +119,9 @@ def reset_all():
 def bajar_barrera(grados: int):
     # Relación real: 28 / 12 (aprox 2.333)
     grados_motor = -grados * (28 / 12)
-    velocidad_motor = 600
+    velocidad_motor = 1000
 
     # Usamos run_angle para que respete los grados exactos que le pidas
-    hub.speaker.beep()
     motor_f.run_angle(velocidad_motor, grados_motor)
     motor_f.stop()
 
@@ -157,7 +132,6 @@ def subir_barrera(grados: int):
     velocidad_motor = 600
 
     # Usamos run_angle para que respete los grados exactos que le pidas
-    hub.speaker.beep()
     motor_f.run_angle(velocidad_motor, grados_motor)
     motor_f.stop()
 
