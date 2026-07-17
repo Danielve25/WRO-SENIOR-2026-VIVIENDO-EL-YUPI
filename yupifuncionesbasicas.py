@@ -1,5 +1,6 @@
 from pybricks.hubs import PrimeHub
 from pybricks.pupdevices import Motor, ColorSensor
+from pybricks.robotics import DriveBase
 from pybricks.parameters import Direction, Port, Stop
 from pybricks.tools import wait, StopWatch
 from umath import pi
@@ -15,6 +16,13 @@ motor_f = Motor(Port.F)
 motor_garra = Motor(Port.D, positive_direction=Direction.COUNTERCLOCKWISE)
 motor_garra.control.stall_tolerances(speed=50, time=200)
 color_sensor = ColorSensor(Port.B)
+robot = DriveBase(motor_derecho, motor_izquierdo, diametro, axle_track=140)
+robot.use_gyro(True)
+
+
+def giro_arco(vel: int, radio: int, target_heading: int):
+    robot.settings(turn_rate=vel, turn_acceleration=vel)
+    robot.arc(radius=radio, angle=target_heading)
 
 
 def agarrar_cubo(cubo: int, primeravez: bool = False, ultimo_agarrado: bool = False):
