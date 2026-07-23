@@ -9,6 +9,7 @@ from yupifuncionesbasicas import (
     motor_izquierdo,
     giro_un_motor,
     reset_motores,
+    giro_distintas_vel,
     segundo_plano,
     giro_arco,
     motor_garra,
@@ -44,11 +45,10 @@ avance_reversa(30, 70, 90)
 wait(2000)
 #
 ## ----------------codigo colores-----------------#
-hub.speaker.beep()
 ## ----------------codigo colores-----------------#
 avance_adelante(50, 75, 90)
 
-motor_f.run_time(speed=-1000, time=1200)
+motor_f.run_time(speed=-1000, time=1000)
 avance_reversa(20, 18, 90)
 giro(30, 0)
 avance_adelante(60, 380, 0)
@@ -79,13 +79,25 @@ avance_adelante(50, 200, 90)
 subir_barrera(70)
 avance_adelante(40, 30, 90)
 motor_f.run_time(speed=-1000, time=1000)
+golpear_pared(40, 1.5, 90, False)
 avance_reversa(70, 150, 90)
 giro(50, 180)
-golpear_pared(-90, 0.5, 180)
-avance_adelante(80, 720, 0)
+golpear_pared(-60, 1, 180)
 
-giro_arco(50, 260, 90)
-avance_adelante(90, 1000, 90)
+avance_adelante(80, 740, 0)
+giro_distintas_vel(35, 60, 90)
+
+avance_adelante(90, 800, 91)
+
+avance_reversa(90, 140, 91)
+giro(50, 180)
+avance_adelante(210, 40, 180)
+wait(200)
+subir_barrera(90)
+wait(200)
+giro(60, 76)
+avance_adelante(50, 200, 80)
+motor_f.run_time(speed=-1000, time=500)
 
 
 exit()

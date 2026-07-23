@@ -20,6 +20,51 @@ robot = DriveBase(motor_derecho, motor_izquierdo, diametro, axle_track=140)
 robot.use_gyro(True)
 
 
+def giro_distintas_vel(speed_left, speed_right, target_heading):
+    # k_steering ajusta levemente el rumbo sin destruir tus velocidades
+    k_steering = 0.5
+
+    while True:
+        current_angle = hub.imu.heading()
+        error = target_heading - current_angle
+
+        # Normalización del ángulo (-180 a 180)
+        if error > 180:
+            error -= 360
+        elif error < -180:
+            error += 360
+
+        # Condición de parada cuando alcanza el objetivo con margen de 2 grados
+        if abs(error) < 2:
+            break
+
+        # Si ambas velocidades tienen el mismo signo (ARCO):
+        # Mantiene TUS velocidades fijas y solo aplica un micro-ajuste para afilar/suavizar la curva
+        if (speed_left >= 0 and speed_right >= 0) or (
+            speed_left <= 0 and speed_right <= 0
+        ):
+            # Determinamos la dirección del giro según cuál velocidad es mayor
+            steering_correction = error * k_steering
+
+            # Mantenemos las potencias base intactas
+            power_left = speed_left
+            power_right = speed_right
+
+        # Si las velocidades tienen signos opuestos (GIRO EN EL EJE):
+        else:
+            power_left = speed_left
+            power_right = speed_right
+
+        # Enviamos las velocidades directo a los motores
+        motor_izquierdo.dc(power_left)
+        motor_derecho.dc(power_right)
+
+        wait(10)
+
+    motor_izquierdo.stop()
+    motor_derecho.stop()
+
+
 def giro_arco(vel: int, radio: int, target_heading: int):
     robot.settings(turn_rate=vel, turn_acceleration=vel)
     robot.arc(radius=radio, angle=target_heading)
@@ -51,9 +96,13 @@ def agarrar_cubo(cubo: int, primeravez: bool = False, ultimo_agarrado: bool = Fa
         golpear_pared(-60, retroceso, 0)
 
 
-def golpear_pared(speed: int, duration: any, target_heading: int):
+def golpear_pared(speed: int, duration: any, target_heading: int, reset: bool = True):
+
     mover_segundos(speed, duration, target_heading)
-    reset_imu()  # Resetear el IMU después de golpear la pared
+    if reset:
+        reset_imu()  # Resetear el IMU después de golpear la pared
+    else:
+        pass
 
 
 def mover_segundos(speed: int, time: any, target_heading: int):
