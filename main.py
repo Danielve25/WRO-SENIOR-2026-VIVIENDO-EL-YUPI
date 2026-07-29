@@ -6,6 +6,7 @@ from yupifuncionesbasicas import (
     hub,
     wait,
     motor_derecho,
+    mostarAngulo,
     motor_izquierdo,
     giro_un_motor,
     reset_motores,
@@ -29,7 +30,7 @@ from yupifuncionesbasicas import (
 )
 
 reset_all()
-golpear_pared(-30, 0.9, 0)
+golpear_pared(-60, 0.9, 0)
 segundo_plano(reset_motores())
 motor_f.run_angle(-600, 240)
 hub.speaker.beep()
@@ -40,18 +41,19 @@ giro(50, 0)
 avance_adelante(80, 900, 0)
 subir_barrera(30)
 giro(40, 90)
-
 avance_reversa(30, 70, 90)
 wait(2000)
-#
-## ----------------codigo colores-----------------#
-## ----------------codigo colores-----------------#
-avance_adelante(50, 75, 90)
 
-motor_f.run_time(speed=-1000, time=1000)
-avance_reversa(20, 18, 90)
-giro(30, 0)
-avance_adelante(60, 380, 0)
+# ----------------codigo colores-----------------#
+# ----------------codigo colores-----------------#
+avance_adelante(50, 75, 90)
+motor_f.run_time(speed=-1000, time=1400)
+avance_reversa(20, 20, 90)
+giro(30, 167)
+avance_adelante(50, 335, 167)
+avance_reversa(50, 370, 167)
+giro(40, 0)
+avance_adelante(60, 340, 0)
 giro_un_motor(30, -90, 0, 1)
 subir_barrera(90)
 giro_un_motor(30, 0, 0, 1)
@@ -71,33 +73,36 @@ subir_barrera(90)
 avance_reversa(70, 230, -90)
 giro(50, 0)
 avance_adelante(70, 240, 0)
-
-
 giro(50, 90)
 motor_f.run_time(speed=-1000, time=1300)
 avance_adelante(50, 200, 90)
 subir_barrera(70)
 avance_adelante(40, 30, 90)
 motor_f.run_time(speed=-1000, time=1000)
-golpear_pared(40, 1.5, 90, False)
+golpear_pared(60, 1.5, 90, False)
 avance_reversa(70, 150, 90)
 giro(50, 180)
 golpear_pared(-60, 1, 180)
 
+
+subir_barrera(90)
 avance_adelante(80, 740, 0)
-giro_distintas_vel(35, 60, 90)
+giro_un_motor(40, 90, 1, 0)
+avance_adelante(40, 180, 90)
+bajar_barrera(70)
 
-avance_adelante(90, 800, 91)
+avance_adelante(90, 900, 91)
+giro(50, 105)
+avance_adelante(50, 300, 105)
+subir_barrera
 
-avance_reversa(90, 140, 91)
-giro(50, 180)
-avance_adelante(210, 40, 180)
 wait(200)
 subir_barrera(90)
 wait(200)
-giro(60, 76)
-avance_adelante(50, 200, 80)
-motor_f.run_time(speed=-1000, time=500)
+giro(60, 90)
+avance_adelante(50, 200, 90)
+motor_f.run_time(speed=-1000, time=1000)
+golpear_pared(70, 2, 90)
 
 
 exit()

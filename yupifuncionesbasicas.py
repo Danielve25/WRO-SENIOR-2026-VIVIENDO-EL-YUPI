@@ -20,6 +20,11 @@ robot = DriveBase(motor_derecho, motor_izquierdo, diametro, axle_track=140)
 robot.use_gyro(True)
 
 
+def mostarAngulo():
+    while True:
+        print(hub.imu.heading())
+
+
 def giro_distintas_vel(speed_left, speed_right, target_heading):
     # k_steering ajusta levemente el rumbo sin destruir tus velocidades
     k_steering = 0.5
