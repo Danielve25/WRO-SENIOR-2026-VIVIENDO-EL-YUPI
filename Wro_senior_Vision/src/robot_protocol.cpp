@@ -2,11 +2,14 @@
 
 #include <cstring>
 
+#include "app_config.h"
+
 namespace
 {
 
     constexpr uint8_t MAGIC_FIRST = 0xC3;
     constexpr uint8_t MAGIC_SECOND = 0x3C;
+    HardwareSerial competitionSerial(2);
 
     uint16_t updateCrc(uint16_t crc, uint8_t value)
     {
@@ -20,6 +23,22 @@ namespace
         return crc;
     }
 
+#if WRO_COMPETITION_DEBUG
+    void logPacket(uint8_t type, uint16_t sequence,
+                   const uint8_t *payload, uint8_t length, uint16_t crc)
+    {
+        Serial.printf("TX type=%u seq=%u len=%u payload=",
+                      static_cast<unsigned>(type),
+                      static_cast<unsigned>(sequence),
+                      static_cast<unsigned>(length));
+        for (uint8_t index = 0; index < length; ++index)
+        {
+            Serial.printf("%02X", static_cast<unsigned>(payload[index]));
+        }
+        Serial.printf(" crc=%04X\n", static_cast<unsigned>(crc));
+    }
+#endif
+
 } // namespace
 
 namespace robot_protocol
@@ -28,25 +47,41 @@ namespace robot_protocol
     void Link::begin(CommandHandler handler)
     {
         commandHandler = handler;
-        Serial.begin(BAUD_RATE, SERIAL_8N1);
-        while (Serial.available() > 0)
+        competitionSerial.begin(BAUD_RATE, SERIAL_8N1, RX_GPIO, TX_GPIO);
+        while (competitionSerial.available() > 0)
         {
-            Serial.read();
+            competitionSerial.read();
         }
     }
 
     void Link::service()
     {
-        while (Serial.available() > 0)
+        while (competitionSerial.available() > 0)
         {
-            feed(static_cast<uint8_t>(Serial.read()));
+            feed(static_cast<uint8_t>(competitionSerial.read()));
         }
     }
 
     void Link::publish(const vision::Result &result)
     {
+        const uint32_t now = millis();
         if (!result.valid)
         {
+#if WRO_COMPETITION_DEBUG
+            static uint32_t lastInvalidLogMillis = 0;
+            if (lastInvalidLogMillis == 0U ||
+                now - lastInvalidLogMillis >= 1000U)
+            {
+                Serial.printf("NO_TX valid=0 confidence=%u border=%u grid=%u "
+                              "colors=%u rejection=%u\n",
+                              static_cast<unsigned>(result.confidence),
+                              static_cast<unsigned>(result.borderScore),
+                              static_cast<unsigned>(result.gridScore),
+                              static_cast<unsigned>(result.validColorCells),
+                              static_cast<unsigned>(result.rejectionCode));
+                lastInvalidLogMillis = now;
+            }
+#endif
             return;
         }
 
@@ -64,7 +99,6 @@ namespace robot_protocol
             }
         }
 
-        const uint32_t now = millis();
         if (!changed && now - lastPublishMillis < 1000U)
         {
             return;
@@ -78,6 +112,31 @@ namespace robot_protocol
                     vision::CELL_COUNT);
 
         const uint16_t sequence = nextSequence++;
+
+#if WRO_COMPETITION_DEBUG
+        Serial.printf("PATTERN seq=%u valid=1 confidence=%u colors=",
+                      static_cast<unsigned>(sequence),
+                      static_cast<unsigned>(result.confidence));
+        for (uint8_t index = 0; index < vision::CELL_COUNT; ++index)
+        {
+            if (index > 0U)
+            {
+                Serial.print(',');
+            }
+            Serial.print(static_cast<unsigned>(colors[index]));
+        }
+        Serial.print(" confidences=");
+        for (uint8_t index = 0; index < vision::CELL_COUNT; ++index)
+        {
+            if (index > 0U)
+            {
+                Serial.print(',');
+            }
+            Serial.print(static_cast<unsigned>(confidence[index]));
+        }
+        Serial.println();
+#endif
+
         sendPacket(TYPE_PATTERN, sequence, payload, sizeof(payload));
         std::memcpy(lastColors, colors, sizeof(lastColors));
         std::memcpy(lastConfidence, confidence, sizeof(lastConfidence));
@@ -170,8 +229,7 @@ namespace robot_protocol
             else if (receivedCrc == calculatedCrc && receivedVersion == VERSION &&
                      receivedType == TYPE_COMMAND &&
                      receivedLength == COMMAND_PAYLOAD_LENGTH &&
-                     receivedPayload[0] == COMMAND_FLASH &&
-                     receivedPayload[1] <= 1U)
+                     receivedPayload[0] == COMMAND_FLASH)
             {
                 if (commandHandler != nullptr)
                 {
@@ -203,23 +261,23 @@ namespace robot_protocol
     {
         uint16_t crc = 0xFFFFU;
         const uint8_t header[2] = {MAGIC_FIRST, MAGIC_SECOND};
-        Serial.write(header, sizeof(header));
+        competitionSerial.write(header, sizeof(header));
 
-        Serial.write(VERSION);
+        competitionSerial.write(VERSION);
         crc = updateCrc(crc, VERSION);
-        Serial.write(type);
+        competitionSerial.write(type);
         crc = updateCrc(crc, type);
-        Serial.write(length);
+        competitionSerial.write(length);
         crc = updateCrc(crc, length);
 
         const uint8_t sequenceBytes[2] = {
             static_cast<uint8_t>(sequence & 0xFFU),
             static_cast<uint8_t>((sequence >> 8) & 0xFFU)};
-        Serial.write(sequenceBytes, sizeof(sequenceBytes));
+        competitionSerial.write(sequenceBytes, sizeof(sequenceBytes));
         crc = updateCrc(crc, sequenceBytes[0]);
         crc = updateCrc(crc, sequenceBytes[1]);
 
-        Serial.write(payload, length);
+        competitionSerial.write(payload, length);
         for (uint8_t index = 0; index < length; index++)
         {
             crc = updateCrc(crc, payload[index]);
@@ -228,8 +286,13 @@ namespace robot_protocol
         const uint8_t crcBytes[2] = {
             static_cast<uint8_t>(crc & 0xFFU),
             static_cast<uint8_t>((crc >> 8) & 0xFFU)};
-        Serial.write(crcBytes, sizeof(crcBytes));
-        Serial.flush();
+
+#if WRO_COMPETITION_DEBUG
+        logPacket(type, sequence, payload, length, crc);
+#endif
+
+        competitionSerial.write(crcBytes, sizeof(crcBytes));
+        competitionSerial.flush();
     }
 
 } // namespace robot_protocol

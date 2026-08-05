@@ -29,6 +29,11 @@ USB-UART RX <- ESP32 GPIO1 / TX0
 GND         <-> ESP32 GND
 ```
 
+The two links use independent ESP32 UARTs: USB DEBUG uses UART0 at `921600`
+baud on GPIO1/GPIO3, while SPIKE uses UART2 at `115200` baud on GPIO13/GPIO14.
+They can remain connected at the same time without changing the debug video
+baud rate.
+
 ## Build ESP32
 
 DEBUG firmware:
@@ -44,6 +49,20 @@ COMPETITION firmware:
 pio run -e esp32cam_competition
 pio run -e esp32cam_competition -t upload
 ```
+
+COMPETITION DEBUG firmware:
+
+```text
+pio run -e esp32cam_competition_debug
+pio run -e esp32cam_competition_debug -t upload
+pio device monitor -e esp32cam_competition_debug
+```
+
+`esp32cam_competition_debug` keeps the binary SPIKE packets on UART2 and
+prints the transmitted pattern, payload and CRC on the USB UART at `115200`
+baud. It also prints rate-limited diagnostics when no valid pattern is sent.
+This environment appears as a separate environment under PlatformIO Project
+Tasks.
 
 The default PlatformIO environment is DEBUG. COMPETITION disables JPEG
 encoding, overlays, metadata and video transmission.

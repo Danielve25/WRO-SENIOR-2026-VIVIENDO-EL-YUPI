@@ -37,8 +37,13 @@ class GridPatternReceiver:
     COMMAND_FLASH = 1
     PATTERN_LENGTH = 26
 
-    def __init__(self, port=Port.A, baudrate=115200, timeout=20):
-        self.uart = UARTDevice(port, baudrate=baudrate, timeout=timeout)
+    def __init__(
+        self,
+        port=Port.C,
+        baudrate=115200,
+        timeout=20,
+    ):
+        self.uart = UARTDevice(port, baudrate=baudrate, timeout=timeout, power_pin=1)
         self._buffer = bytearray()
         self._pattern = None
         self.crc_errors = 0
@@ -107,10 +112,10 @@ class GridPatternReceiver:
         start = self._buffer.find(self.MAGIC)
         if start < 0:
             if len(self._buffer) > 1:
-                del self._buffer[:-1]
+                self._buffer = bytearray(self._buffer[-1:])
             return None
         if start > 0:
-            del self._buffer[:start]
+            self._buffer = bytearray(self._buffer[start:])
         if len(self._buffer) < header_length:
             return None
 
@@ -120,7 +125,7 @@ class GridPatternReceiver:
         sequence = self._buffer[5] | (self._buffer[6] << 8)
         total_length = header_length + payload_length + crc_length
         if payload_length > 64:
-            del self._buffer[:2]
+            self._buffer = bytearray(self._buffer[2:])
             self.format_errors += 1
             return None
         if len(self._buffer) < total_length:
@@ -130,7 +135,7 @@ class GridPatternReceiver:
         payload = packet[header_length : header_length + payload_length]
         received_crc = packet[-2] | (packet[-1] << 8)
         calculated_crc = self._crc16(packet[2:-2])
-        del self._buffer[:total_length]
+        self._buffer = bytearray(self._buffer[total_length:])
 
         if version != self.VERSION:
             self.format_errors += 1

@@ -11,6 +11,7 @@
 namespace {
 
 constexpr uint32_t DEBUG_BAUD_RATE = 921600;
+constexpr uint32_t COMPETITION_DEBUG_BAUD_RATE = 115200;
 constexpr uint8_t JPEG_QUALITY = 45;
 constexpr int FLASH_GPIO = 4;
 constexpr uint8_t FLASH_PWM_CHANNEL = 7;
@@ -110,7 +111,8 @@ void setup()
     initializeFlash();
 #if WRO_DEBUG_MODE
     Serial.begin(DEBUG_BAUD_RATE, SERIAL_8N1);
-
+#elif WRO_COMPETITION_DEBUG
+    Serial.begin(COMPETITION_DEBUG_BAUD_RATE, SERIAL_8N1);
 #endif
     if (!visionPipeline.begin() || !initializeCamera()
 #if WRO_DEBUG_MODE
